@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import feedparser
 import requests
@@ -9,7 +9,7 @@ from app.db import insert_paper, paper_exists
 
 logger = logging.getLogger(__name__)
 
-_API_URL = "https://export.arxiv.org/api/query"
+_API_URL = "http://export.arxiv.org/api/query"
 _USER_AGENT = "Sift/1.0 (local ArXiv digest agent)"
 _TIMEOUT = 30
 _DELAY_BETWEEN_TOPICS = 5   # seconds between topic requests (ArXiv ToS: >= 3s)
@@ -18,12 +18,11 @@ _RETRY_WAITS = [30, 60]     # seconds to wait before retry 1, retry 2
 
 def fetch_papers(
     topics: list[str],
-    hours_back: int = 24,
     max_per_topic: int = 30,
 ) -> list[dict]:
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours_back)
-    new_papers: list[dict] = []
+    all_papers: list[dict] = []
     seen_ids: set[str] = set()
+    new_count = 0
 
     for i, topic in enumerate(topics):
         if i > 0:
@@ -31,27 +30,30 @@ def fetch_papers(
 
         logger.info("Fetching ArXiv papers for topic: %s", topic)
         try:
-            results = _query_topic(topic, max_per_topic, cutoff)
+            results = _query_topic(topic, max_per_topic)
             for paper in results:
                 if paper["id"] in seen_ids:
                     continue
                 seen_ids.add(paper["id"])
                 if paper_exists(paper["id"]):
-                    logger.debug("Skipping existing paper %s", paper["id"])
-                    continue
-                insert_paper(paper)
-                new_papers.append(paper)
+                    logger.debug("Paper %s already in DB", paper["id"])
+                else:
+                    insert_paper(paper)
+                    new_count += 1
+                all_papers.append(paper)
         except Exception as exc:
             logger.error("Error fetching topic '%s': %s", topic, exc, exc_info=True)
 
-    logger.info("Fetched %d new papers across %d topics", len(new_papers), len(topics))
-    return new_papers
+    logger.info(
+        "Found %d papers across %d topics (%d new)",
+        len(all_papers), len(topics), new_count,
+    )
+    return all_papers
 
 
 def _query_topic(
     topic: str,
     max_results: int,
-    cutoff: datetime,
 ) -> list[dict]:
     # ArXiv API uses + for spaces in query strings (not %20)
     encoded_topic = topic.strip().replace(" ", "+")
@@ -66,8 +68,8 @@ def _query_topic(
     logger.info("ArXiv query: %s", url)
 
     feed = _fetch_with_retry(url)
-    papers = _parse_feed(feed, cutoff)
-    logger.info("Topic '%s': %d papers in time window", topic, len(papers))
+    papers = _parse_feed(feed)
+    logger.info("Topic '%s': %d papers found", topic, len(papers))
     return papers
 
 
@@ -112,13 +114,11 @@ def _fetch_with_retry(url: str) -> feedparser.FeedParserDict:
     raise last_exc
 
 
-def _parse_feed(feed: feedparser.FeedParserDict, cutoff: datetime) -> list[dict]:
+def _parse_feed(feed: feedparser.FeedParserDict) -> list[dict]:
     papers = []
     for entry in feed.entries:
         try:
             published = _parse_date(entry.get("published", ""))
-            if published and published < cutoff:
-                continue  # older than our window
 
             arxiv_id = _extract_id(entry.get("id", ""))
             if not arxiv_id:

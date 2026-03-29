@@ -4,57 +4,67 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_pipeline = None
+_model_state: Optional[dict] = None  # {"tokenizer": ..., "model": ..., "device": ...}
 _model_name: Optional[str] = None
 
 
 def load_model(model_name: str) -> None:
-    global _pipeline, _model_name
-    if _pipeline is not None and _model_name == model_name:
+    global _model_state, _model_name
+    if _model_state is not None and _model_name == model_name:
         return
     logger.info("Loading summarization model: %s", model_name)
-    from transformers import pipeline, AutoTokenizer
+    import torch
+    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
     device = _pick_device()
-    _pipeline = pipeline(
-        "summarization",
-        model=model_name,
-        device=device,
-        truncation=True,
-    )
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    model = model.to(device)
+    model.eval()
+    _model_state = {"tokenizer": tokenizer, "model": model, "device": device}
     _model_name = model_name
     logger.info("Summarization model loaded on device: %s", device)
 
 
-def _pick_device() -> int:
+def _pick_device():
     try:
         import torch
         if torch.cuda.is_available():
-            return 0
+            return torch.device("cuda")
         if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            return 0  # MPS maps to device 0 via transformers
+            return torch.device("mps")
     except Exception:
         pass
-    return -1
+    import torch
+    return torch.device("cpu")
 
 
 def summarize(abstract: str) -> str:
-    if _pipeline is None:
+    if _model_state is None:
         raise RuntimeError("Summarization model not loaded. Call load_model() first.")
 
-    max_input = 1024
-    tokens = abstract.split()
-    if len(tokens) > max_input:
-        abstract = " ".join(tokens[:max_input])
+    import torch
+    tokenizer = _model_state["tokenizer"]
+    model = _model_state["model"]
+    device = _model_state["device"]
 
-    result = _pipeline(
-        abstract,
-        max_length=130,
-        min_length=40,
-        do_sample=False,
-        truncation=True,
-    )
-    return result[0]["summary_text"].strip()
+    max_input_tokens = 1024
+    tokens = abstract.split()
+    if len(tokens) > max_input_tokens:
+        abstract = " ".join(tokens[:max_input_tokens])
+
+    inputs = tokenizer(
+        abstract, return_tensors="pt", truncation=True, max_length=1024
+    ).to(device)
+    with torch.no_grad():
+        output_ids = model.generate(
+            **inputs,
+            max_length=130,
+            min_length=40,
+            num_beams=4,
+            early_stopping=True,
+        )
+    return tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
 
 
 def summarize_and_store(papers: list[dict], model_name: str) -> None:
@@ -83,7 +93,7 @@ def abstract_fallback(abstract: str, sentences: int = 2) -> str:
 
 
 def get_model_info() -> dict:
-    if _pipeline is None:
+    if _model_state is None:
         return {"loaded": False, "model_name": None, "parameters": None, "memory_mb": None}
     try:
         import psutil
@@ -93,7 +103,7 @@ def get_model_info() -> dict:
         mem_mb = None
     param_count = None
     try:
-        params = sum(p.numel() for p in _pipeline.model.parameters())
+        params = sum(p.numel() for p in _model_state["model"].parameters())
         param_count = f"{params / 1e6:.0f}M"
     except Exception:
         pass
