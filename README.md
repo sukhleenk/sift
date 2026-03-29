@@ -2,7 +2,7 @@
 
 A local ArXiv research digest that runs entirely on your machine. It fetches papers on topics you care about, summarizes them with a local HuggingFace model, clusters them by topic, and delivers a daily digest as a macOS menu bar notification and an in-app reader.
 
-No cloud APIs. No subscriptions. The summarizer works offline after the first model download. You do still need to be online to fetch papers.
+The summarizer works offline after the first model download. You do still need to be online to fetch papers.
 
 Supports macOS (menu bar) and Linux (system tray).
 
