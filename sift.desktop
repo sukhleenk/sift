@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Sift
+GenericName=ArXiv Research Digest
+Comment=Local ArXiv research digest agent
+Exec=/usr/local/bin/sift
+Icon=sift
+Terminal=false
+Categories=Science;Education;Office;
+Keywords=arxiv;research;papers;digest;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true

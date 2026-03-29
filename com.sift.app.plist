@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sift.app</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Applications/Sift.app/Contents/MacOS/sift</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/tmp/sift_launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/sift_launchd_err.log</string>
+</dict>
+</plist>
