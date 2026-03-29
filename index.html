@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sift — Local ArXiv Digest</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f6f2;
+      --dark: #0f0f0e;
+      --text: #26241f;
+      --muted: #6b6860;
+      --accent: #c94f0c;
+      --accent-soft: #f5ebe3;
+      --border: #e6e2db;
+      --card: #ffffff;
+      --mono: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Nav ── */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 48px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .logo {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--dark);
+    }
+
+    .nav-links { display: flex; gap: 24px; }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--dark);
+      padding: 100px 48px 88px;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+      border: 1px solid #3a2018;
+      border-radius: 100px;
+      padding: 4px 14px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.6rem, 6vw, 4.2rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.08;
+      color: #f2ede6;
+      margin-bottom: 22px;
+    }
+
+    .hero h1 span { color: var(--accent); }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: #908c85;
+      max-width: 500px;
+      margin: 0 auto 44px;
+      line-height: 1.65;
+    }
+
+    /* ── Download Area ── */
+    #download-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 14px 26px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: default;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      pointer-events: none;
+      opacity: 0.88;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: #908c85;
+      border: 1px solid #2e2c28;
+      border-radius: 9px;
+      padding: 11px 22px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+    .btn-secondary:hover { border-color: #4a4840; color: #c0bbb4; }
+
+    .badge-soon {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #504e49;
+    }
+
+    .source-block {
+      text-align: left;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .source-block p {
+      font-size: 0.8rem;
+      color: #605e58;
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    pre {
+      background: #181816;
+      border: 1px solid #2c2c28;
+      border-radius: 10px;
+      padding: 18px 22px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: #c8c3ba;
+      overflow-x: auto;
+      line-height: 1.8;
+    }
+
+    /* ── How it works ── */
+    .how {
+      padding: 88px 48px;
+      max-width: 1020px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--dark);
+      margin-bottom: 48px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 26px;
+    }
+
+    .feature-card .icon {
+      font-size: 1.4rem;
+      display: block;
+      margin-bottom: 14px;
+    }
+
+    .feature-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--dark);
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 0.86rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── Privacy strip ── */
+    .privacy {
+      background: var(--accent-soft);
+      border-top: 1px solid #e8d5c4;
+      border-bottom: 1px solid #e8d5c4;
+      padding: 68px 48px;
+      text-align: center;
+    }
+
+    .privacy h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--dark);
+      margin-bottom: 12px;
+    }
+
+    .privacy p {
+      font-size: 1rem;
+      color: #825438;
+      max-width: 440px;
+      margin: 0 auto 28px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .pill {
+      background: #fff;
+      border: 1px solid #dfc8b4;
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #7a4428;
+    }
+
+    /* ── Requirements ── */
+    .requirements {
+      padding: 0 48px 72px;
+      max-width: 1020px;
+      margin: 0 auto;
+    }
+
+    .req-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .req-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      nav { padding: 16px 24px; }
+      .hero, .how, .privacy, .requirements { padding-left: 24px; padding-right: 24px; }
+      footer { flex-direction: column; gap: 8px; padding: 24px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Sift 📚</span>
+  <div class="nav-links">
+    <a href="https://github.com/sukhleenk/sift" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow">Open source &middot; Runs locally</div>
+  <h1>ArXiv research,<br><span>filtered for you.</span></h1>
+  <p>Pick your topics. Sift fetches the latest papers, summarizes them on your machine, and delivers a daily digest to your menu bar.</p>
+
+  <div id="download-area">
+    <span class="badge-soon">Loading...</span>
+  </div>
+</section>
+
+<section class="how">
+  <div class="section-label">What it does</div>
+  <div class="section-title">From ArXiv to your inbox in four steps.</div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <span class="icon">📡</span>
+      <h3>Fetches from ArXiv</h3>
+      <p>Pulls the latest papers for any topics you care about. Add or remove topics from Preferences at any time.</p>
+    </div>
+    <div class="feature-card">
+      <span class="icon">🧠</span>
+      <h3>Summarizes on-device</h3>
+      <p>Runs a HuggingFace model on your hardware. Works offline after the first download. No API keys, ever.</p>
+    </div>
+    <div class="feature-card">
+      <span class="icon">🗂</span>
+      <h3>Clusters by topic</h3>
+      <p>Groups related papers using embeddings and k-means so you can scan a cluster and move on.</p>
+    </div>
+    <div class="feature-card">
+      <span class="icon">🔔</span>
+      <h3>Lives in your menu bar</h3>
+      <p>Sits quietly on macOS and Linux. Notifies you when a digest is ready. Out of the way until you need it.</p>
+    </div>
+    <div class="feature-card">
+      <span class="icon">📅</span>
+      <h3>Runs on a schedule</h3>
+      <p>Set a morning or evening digest time. Sift handles the rest. Hit "Fetch Now" to run one immediately.</p>
+    </div>
+    <div class="feature-card">
+      <span class="icon">⚙️</span>
+      <h3>Adapts to your hardware</h3>
+      <p>Detects your CPU, GPU, or Apple Silicon on first run and picks the right model for your setup.</p>
+    </div>
+  </div>
+</section>
+
+
+<section class="requirements">
+  <div class="section-label">Requirements</div>
+  <div class="section-title" style="margin-bottom: 24px;">What you need to run it.</div>
+  <div class="req-grid">
+    <span class="req-item">Python 3.11+</span>
+    <span class="req-item">macOS 12+ or Linux x86_64</span>
+    <span class="req-item">4–16 GB disk space</span>
+    <span class="req-item">Internet connection for fetching papers</span>
+  </div>
+</section>
+
+<section style="text-align: center; padding: 16px 24px 48px;">
+  <p style="font-size: 0.875rem; color: var(--muted); margin-bottom: 14px;">Got an idea or found a bug?</p>
+  <a href="https://github.com/sukhleenk/sift/issues/new" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 20px; font-size: 0.875rem; font-weight: 600; color: var(--text); text-decoration: none; background: var(--card);">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Open an issue on GitHub
+  </a>
+</section>
+
+<footer>
+  <span>Sift 📚</span>
+  <span>Apache-2.0 &middot; <a href="https://github.com/sukhleenk/sift">github.com/sukhleenk/sift</a> &middot; &copy; 2026 &middot; Made with &hearts; by <a href="https://github.com/sukhleenk" target="_blank" rel="noopener">Sukhleen Kaur</a></span>
+</footer>
+
+<script>
+  (function () {
+    var ua = navigator.userAgent;
+    var area = document.getElementById('download-area');
+
+    var isMac = /Macintosh|MacIntel/.test(ua) && !/iPhone|iPad/.test(ua);
+    var isLinux = /Linux/.test(ua) && !/Android/.test(ua);
+
+    if (isMac) {
+      area.innerHTML =
+        '<a class="btn-primary" href="#" onclick="return false;">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>' +
+          'Download for macOS (.dmg)' +
+        '</a>' +
+        '<span class="badge-soon">Coming soon</span>';
+
+    } else if (isLinux) {
+      area.innerHTML =
+        '<a class="btn-primary" href="#" onclick="return false;">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.581 19.049c-.55-.446-.336-1.431-.907-1.917.553-3.365-.997-6.331-2.845-8.232C15.298 7.205 14.364 5.2 13 4c-1.364-1.2-2.456-1.12-3-.8-.543.32-.543.6-.5 1 .043.4.5 1 .5 1s-.861-.144-2 .8c-1.139.944-1.801 2.797-2 4.2-.219 1.524.142 2.97.5 4 .358 1.031.5 1.5.5 1.5s-.459.3-.5 1.2c-.041.9.459 2.3 1 3 .541.7 1.5 1.1 2 1 .5-.1.654-.3.654-.3s.527.7 2.346.7c1.819 0 4-.9 4-.9s.128-.001.654.3c.526.301.946.301 1.846-.3.9-.601 1.5-1.6 1.5-2.5 0-.9-.5-1.5-.5-1.5s.128-.179.5 0c.372.179.938.607 1.5.5.562-.107.757-.5.5-1zM12 4c.552 0 1 .672 1 1.5S12.552 7 12 7s-1-.672-1-1.5S11.448 4 12 4z"/></svg>' +
+          'Download for Linux (.AppImage)' +
+        '</a>' +
+        '<span class="badge-soon">Coming soon</span>';
+
+    } else {
+      area.innerHTML =
+        '<div class="source-block">' +
+          '<p>Install from source</p>' +
+          '<pre>' +
+'git clone https://github.com/sukhleenk/sift.git\n' +
+'cd sift\n' +
+'python3 -m venv .venv\n' +
+'source .venv/bin/activate\n' +
+'pip install -r requirements.txt\n' +
+'python main.py' +
+          '</pre>' +
+        '</div>';
+    }
+  })();
+</script>
+
+</body>
+</html>
