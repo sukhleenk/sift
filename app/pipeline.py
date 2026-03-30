@@ -78,11 +78,11 @@ def _run_all_steps(
 
     logger.info("[Pipeline] Step 1 — Fetch")
     t0 = time.monotonic()
-    new_papers = fetcher.fetch_papers(topics, hours_back=hours_back, max_per_topic=max_papers * 2)
-    logger.info("[Pipeline] Fetched %d new papers in %.1fs", len(new_papers), time.monotonic() - t0)
+    new_papers = fetcher.fetch_papers(topics, max_per_topic=max_papers * 2)
+    logger.info("[Pipeline] Found %d papers in %.1fs", len(new_papers), time.monotonic() - t0)
 
     if not new_papers:
-        logger.info("[Pipeline] No new papers found — skipping digest generation.")
+        logger.info("[Pipeline] No papers found — skipping digest generation.")
         return
 
     new_papers = new_papers[:max_papers]
