@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from platformdirs import user_data_dir
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,9 @@ def _templates_dir() -> Path:
 
 
 def _output_dir() -> Path:
-    out = Path(user_data_dir(APP_NAME)) / "digests"
+    # Use ~/Documents/Sift so snap-sandboxed browsers (e.g. Firefox snap) can
+    # open the files.  ~/.local/share is outside the snap's AppArmor profile.
+    out = Path.home() / "Documents" / "Sift"
     out.mkdir(parents=True, exist_ok=True)
     return out
 

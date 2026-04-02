@@ -47,12 +47,24 @@ def main():
             _run_tkinter_fallback()
     else:
         try:
+            import os
+            # The xorg backend requires a legacy system tray (absent on GNOME/Wayland).
+            # Default to the gtk backend, which uses AppIndicator/StatusNotifier and
+            # works on modern Linux desktops.  Users can override via PYSTRAY_BACKEND.
+            os.environ.setdefault("PYSTRAY_BACKEND", "gtk")
             import pystray  # noqa: F401
             from app.tray_linux import run_app
             logger.info("Starting Linux system tray app.")
             run_app()
-        except ImportError:
-            logger.warning("pystray not available — falling back to CLI mode.")
+        except ImportError as e:
+            if "pystray" in str(e).lower():
+                logger.warning("pystray not available — falling back to CLI mode.")
+            else:
+                logger.warning(
+                    "System tray unavailable (%s). "
+                    "Install PyGObject for tray support: sudo apt install python3-gi gir1.2-ayatanaappindicator3-0.1",
+                    e,
+                )
             _run_cli_mode()
 
 
