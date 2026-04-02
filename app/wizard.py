@@ -70,14 +70,18 @@ class _WizardWindow:
         header = tk.Frame(root, bg="#1d1d1f", pady=16)
         header.pack(fill="x")
         tk.Label(
-            header, text="Welcome to Sift",
+            header,
+            text="Welcome to Sift",
             font=("system", 22, "bold"),
-            bg="#1d1d1f", fg="white",
+            bg="#1d1d1f",
+            fg="white",
         ).pack()
         tk.Label(
-            header, text="Local ArXiv research digest — no cloud required",
+            header,
+            text="Local ArXiv research digest — no cloud required",
             font=("system", 13),
-            bg="#1d1d1f", fg="#a1a1a6",
+            bg="#1d1d1f",
+            fg="#a1a1a6",
         ).pack()
 
         body = tk.Frame(root, padx=24, pady=16)
@@ -129,8 +133,10 @@ class _WizardWindow:
         topics_entry = ttk.Entry(body, textvariable=self._topics_var, width=60)
         topics_entry.pack(anchor="w", pady=(4, 0))
         tk.Label(
-            body, text="e.g. \"RAG systems, multimodal reasoning, protein folding\"",
-            font=("system", 10), fg="#888",
+            body,
+            text='e.g. "RAG systems, multimodal reasoning, protein folding"',
+            font=("system", 10),
+            fg="#888",
         ).pack(anchor="w")
 
         _section(body, "Digest Frequency")
@@ -138,21 +144,30 @@ class _WizardWindow:
         frq_frame = tk.Frame(body)
         frq_frame.pack(anchor="w")
         ttk.Radiobutton(
-            frq_frame, text="Once daily (8 AM)", value="once_daily", variable=self._freq_var
+            frq_frame,
+            text="Once daily (8 AM)",
+            value="once_daily",
+            variable=self._freq_var,
         ).pack(side="left", padx=(0, 16))
         ttk.Radiobutton(
-            frq_frame, text="Twice daily (8 AM & 6 PM)", value="twice_daily", variable=self._freq_var
+            frq_frame,
+            text="Twice daily (8 AM & 6 PM)",
+            value="twice_daily",
+            variable=self._freq_var,
         ).pack(side="left")
 
         _section(body, "Max Papers Per Digest")
         slider_frame = tk.Frame(body)
         slider_frame.pack(anchor="w", fill="x")
         self._max_papers_var = tk.IntVar(value=10)
-        self._max_label = tk.Label(slider_frame, text="10", width=3, font=("system", 12, "bold"))
+        self._max_label = tk.Label(
+            slider_frame, text="10", width=3, font=("system", 12, "bold")
+        )
         self._max_label.pack(side="right")
         slider = ttk.Scale(
             slider_frame,
-            from_=5, to=30,
+            from_=5,
+            to=30,
             orient="horizontal",
             variable=self._max_papers_var,
             command=lambda v: self._max_label.config(text=str(int(float(v)))),
@@ -162,13 +177,19 @@ class _WizardWindow:
 
         self._progress_frame = tk.Frame(body)
         self._progress_frame.pack(fill="x", pady=(8, 0))
-        self._progress_label = tk.Label(self._progress_frame, text="", font=("system", 11))
+        self._progress_label = tk.Label(
+            self._progress_frame, text="", font=("system", 11)
+        )
         self._progress_label.pack(anchor="w")
-        self._progress = ttk.Progressbar(self._progress_frame, mode="indeterminate", length=580)
+        self._progress = ttk.Progressbar(
+            self._progress_frame, mode="indeterminate", length=580
+        )
 
         btn_frame = tk.Frame(root, pady=12, padx=24)
         btn_frame.pack(fill="x")
-        self._start_btn = ttk.Button(btn_frame, text="Download Models & Start", command=self._on_start)
+        self._start_btn = ttk.Button(
+            btn_frame, text="Download Models & Start", command=self._on_start
+        )
         self._start_btn.pack(side="right", padx=(8, 0))
         ttk.Button(btn_frame, text="Cancel", command=self._on_cancel).pack(side="right")
 
@@ -193,13 +214,17 @@ class _WizardWindow:
         }
 
         self._start_btn.config(state="disabled")
-        self._progress_label.config(text="Downloading models… this may take a few minutes.")
+        self._progress_label.config(
+            text="Downloading models… this may take a few minutes."
+        )
         self._progress.pack(fill="x")
         self._progress.start(10)
 
         def download():
             try:
-                _download_models(config["summarization_model"], config["embedding_model"])
+                _download_models(
+                    config["summarization_model"], config["embedding_model"]
+                )
                 self.root.after(0, lambda: self._finish(config))
             except Exception as exc:
                 self.root.after(0, lambda: self._on_download_error(exc))
@@ -234,6 +259,8 @@ def _center_window(root: tk.Tk, w: int, h: int):
     root.update_idletasks()
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
+    w = max(w, root.winfo_reqwidth())
+    h = max(h, root.winfo_reqheight())
     x = (sw - w) // 2
     y = (sh - h) // 2
     root.geometry(f"{w}x{h}+{x}+{y}")
