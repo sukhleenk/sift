@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 
 import numpy as np
+from joblib import parallel_backend
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -20,7 +21,8 @@ def cluster_papers(papers: list[dict]) -> list[dict]:
 
     logger.info("Running k-means with k=%d on %d papers", k, n)
     km = KMeans(n_clusters=k, random_state=42, n_init="auto")
-    labels = km.fit_predict(embeddings)
+    with parallel_backend("threading"):
+        labels = km.fit_predict(embeddings)
     centroids = km.cluster_centers_
 
     cluster_labels = _label_clusters(papers, embeddings, labels, centroids, k)
