@@ -55,11 +55,11 @@ def _query_topic(
     topic: str,
     max_results: int,
 ) -> list[dict]:
-    # ArXiv API uses + for spaces in query strings (not %20)
-    encoded_topic = topic.strip().replace(" ", "+")
+    # Wrap in quotes for exact phrase matching; spaces become + inside the phrase
+    phrase = topic.strip().replace(" ", "+")
     url = (
         f"{_API_URL}"
-        f"?search_query=all:{encoded_topic}"
+        f"?search_query=all:%22{phrase}%22"
         f"&sortBy=submittedDate"
         f"&sortOrder=descending"
         f"&max_results={max_results}"
