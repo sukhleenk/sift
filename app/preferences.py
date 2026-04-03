@@ -22,8 +22,8 @@ class PreferencesWindow:
 
         self.root = tk.Toplevel()
         self.root.title("Sift — Preferences")
-        self.root.resizable(False, False)
-        _center_window(self.root, 580, 620)
+        self.root.resizable(False, True)
+        _center_window(self.root, 600, 720)
         self._build_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.root.destroy)
 
@@ -39,11 +39,11 @@ class PreferencesWindow:
         self._topics_list.pack(anchor="w")
 
         topics_btn_frame = tk.Frame(body)
-        topics_btn_frame.pack(anchor="w", pady=(4, 0))
-        self._topic_entry = ttk.Entry(topics_btn_frame, width=38)
+        topics_btn_frame.pack(anchor="w", pady=(4, 0), fill="x")
+        self._topic_entry = ttk.Entry(topics_btn_frame, width=34)
         self._topic_entry.pack(side="left", padx=(0, 6))
-        ttk.Button(topics_btn_frame, text="Add", command=self._add_topic).pack(side="left", padx=(0, 4))
-        ttk.Button(topics_btn_frame, text="Remove", command=self._remove_topic).pack(side="left")
+        ttk.Button(topics_btn_frame, text="Add", width=8, command=self._add_topic).pack(side="left", padx=(0, 4))
+        ttk.Button(topics_btn_frame, text="Remove", width=8, command=self._remove_topic).pack(side="left")
 
         _section(body, "Digest Schedule")
         self._freq_var = tk.StringVar(value=self.config.get("digest_frequency", "once_daily"))
