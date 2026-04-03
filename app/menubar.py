@@ -134,17 +134,19 @@ class SiftMenuBarApp(rumps.App):
 
     @rumps.clicked("⚙️  Preferences")
     def _open_preferences(self, _=None):
-        def _show():
-            from app.preferences import PreferencesWindow
-            win = PreferencesWindow(self.config, on_save=self._on_prefs_saved)
-            win.show()
-            import tkinter as tk
-            try:
-                win.root.mainloop()
-            except Exception:
-                pass
+        # Tkinter cannot run on a non-main thread on macOS — launch as a
+        # separate process so it gets its own main thread.
+        def _launch():
+            result = subprocess.run(
+                [sys.executable, "-m", "app.prefs_process"],
+                capture_output=False,
+            )
+            # Re-read config in case the user saved changes
+            new_config = load_config()
+            if new_config:
+                self._on_prefs_saved(new_config)
 
-        threading.Thread(target=_show, daemon=True).start()
+        threading.Thread(target=_launch, daemon=True).start()
 
     def _on_prefs_saved(self, new_config: dict):
         self.config = new_config
