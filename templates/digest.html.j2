@@ -149,10 +149,47 @@
   .btn:hover { background: var(--button-hover); }
   .btn.read-btn.done {
     color: var(--secondary);
-    border-color: transparent;
-    background: transparent;
-    cursor: default;
+    border-color: var(--border);
+    background: var(--button-bg);
+    cursor: pointer;
   }
+  .btn.save-btn.saved {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ── BibTeX modal ───────────────────────────────────── */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    width: 540px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  .modal h3 { font-size: 14px; margin-bottom: 10px; }
+  .modal textarea {
+    width: 100%; height: 160px;
+    font-family: "SF Mono", "Fira Mono", monospace;
+    font-size: 12px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    resize: none;
+  }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
 
   /* ── Footer ──────────────────────────────────────────── */
   .digest-footer {
@@ -194,15 +231,22 @@
     <div class="paper-actions">
       <a class="paper-link" href="{{ paper.pdf_url }}" target="_blank">→ arxiv.org/abs/{{ paper.id }}</a>
       <button class="btn read-btn{% if paper.is_read %} done{% endif %}"
-              onclick="markRead('{{ paper.id }}')"
+              onclick="toggleRead('{{ paper.id }}')"
               id="read-btn-{{ paper.id | replace('.', '-') }}">
         {{ '✓ Read' if paper.is_read else 'Mark Read' }}
       </button>
-      <button class="btn" onclick="savePaper('{{ paper.id }}')">
-        {{ '★ Saved' if paper.is_saved else 'Save' }}
+      <button class="btn save-btn{% if paper.is_saved %} saved{% endif %}"
+              onclick="toggleSave('{{ paper.id }}')"
+              id="save-btn-{{ paper.id | replace('.', '-') }}">
+        {{ 'Unsave' if paper.is_saved else 'Save' }}
       </button>
-      <button class="btn" onclick="copyCitation('{{ paper.id }}', {{ paper | tojson }})">
-        Copy Citation
+      <button class="btn cite-btn"
+              data-id="{{ paper.id }}"
+              data-title="{{ paper.title }}"
+              data-authors="{{ paper.authors | join(' || ') }}"
+              data-year="{{ paper.published_at[:4] }}"
+              onclick="copyCitation(this)">
+        Copy BibTeX
       </button>
     </div>
   </div>
@@ -217,33 +261,78 @@
 </div>
 
 <script>
-  function markRead(paperId) {
-    const card = document.getElementById('paper-' + paperId.replace(/\./g, '-'));
-    const btn = document.getElementById('read-btn-' + paperId.replace(/\./g, '-'));
-    if (card) card.classList.add('is-read');
-    if (btn) { btn.textContent = '✓ Read'; btn.classList.add('done'); }
-    fetch('sift://mark-read/' + encodeURIComponent(paperId)).catch(() => {});
+  function toggleRead(paperId) {
+    const key = paperId.replace(/\./g, '-');
+    const card = document.getElementById('paper-' + key);
+    const btn  = document.getElementById('read-btn-' + key);
+    const reading = card.classList.toggle('is-read');
+    btn.textContent = reading ? '✓ Read' : 'Mark Read';
+    btn.classList.toggle('done', reading);
+    fetch('http://127.0.0.1:{{ action_port }}/' + (reading ? 'mark-read' : 'mark-unread') + '/' + encodeURIComponent(paperId)).catch(() => {});
   }
 
-  function savePaper(paperId) {
-    const card = document.getElementById('paper-' + paperId.replace(/\./g, '-'));
-    if (card) card.classList.add('is-saved');
-    fetch('sift://save/' + encodeURIComponent(paperId)).catch(() => {});
+  function toggleSave(paperId) {
+    const key = paperId.replace(/\./g, '-');
+    const card = document.getElementById('paper-' + key);
+    const btn  = document.getElementById('save-btn-' + key);
+    const saving = card.classList.toggle('is-saved');
+    btn.textContent = saving ? 'Unsave' : 'Save';
+    btn.classList.toggle('saved', saving);
+    fetch('http://127.0.0.1:{{ action_port }}/' + (saving ? 'save' : 'unsave') + '/' + encodeURIComponent(paperId)).catch(() => {});
   }
 
-  function copyCitation(paperId, paper) {
-    const authors = (paper.authors || []).slice(0, 3).join(', ');
-    const year = (paper.published_at || '').slice(0, 4);
-    const citation = authors + ' (' + year + '). ' + paper.title + '. arXiv:' + paperId;
-    navigator.clipboard.writeText(citation).catch(() => {
-      const el = document.createElement('textarea');
-      el.value = citation;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
-    });
+  function copyCitation(btn) {
+    const paperId = btn.dataset.id;
+    const title   = btn.dataset.title;
+    const year    = btn.dataset.year;
+    const rawAuthors = (btn.dataset.authors || '').split(' || ').filter(Boolean);
+    const authors = rawAuthors.map(function(a) {
+      const parts = a.trim().split(' ');
+      const last  = parts[parts.length - 1];
+      const first = parts.slice(0, -1).join(' ');
+      return last + (first ? ', ' + first : '');
+    }).join(' and ');
+    const key = (rawAuthors[0] ? rawAuthors[0].trim().split(' ').pop().toLowerCase() : 'unknown')
+                + year + paperId.replace(/\./g, '');
+    const bibtex = '@misc{' + key + ',\n'
+      + '  title         = {' + title + '},\n'
+      + '  author        = {' + authors + '},\n'
+      + '  year          = {' + year + '},\n'
+      + '  eprint        = {' + paperId + '},\n'
+      + '  archivePrefix = {arXiv},\n'
+      + '  url           = {https://arxiv.org/abs/' + paperId + '}\n'
+      + '}';
+    document.getElementById('bibtex-text').value = bibtex;
+    document.getElementById('bibtex-modal').classList.add('open');
+    document.getElementById('modal-copy-btn').textContent = 'Copy';
   }
+
+  function copyFromModal() {
+    const ta = document.getElementById('bibtex-text');
+    ta.select();
+    ta.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    document.getElementById('modal-copy-btn').textContent = 'Copied!';
+  }
+
+  function closeBibtexModal() {
+    document.getElementById('bibtex-modal').classList.remove('open');
+  }
+
+  document.getElementById('bibtex-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeBibtexModal();
+  });
 </script>
+<div class="modal-backdrop" id="bibtex-modal">
+  <div class="modal">
+    <h3>BibTeX Citation</h3>
+    <textarea id="bibtex-text" readonly></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeBibtexModal()">Close</button>
+      <button class="btn" id="modal-copy-btn" onclick="copyFromModal()">Copy</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

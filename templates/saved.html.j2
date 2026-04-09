@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sift — Saved Papers</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --border: #d1d1d6;
+    --text: #1d1d1f;
+    --secondary: #6e6e73;
+    --accent: #0071e3;
+    --divider: #e5e5ea;
+    --button-bg: #e9e9eb;
+    --button-hover: #d1d1d6;
+    --saved-bg: #fff7ed;
+    --saved-border: #fed7aa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --border: #3a3a3c;
+      --text: #f2f2f7;
+      --secondary: #8e8e93;
+      --accent: #2997ff;
+      --divider: #3a3a3c;
+      --button-bg: #3a3a3c;
+      --button-hover: #48484a;
+      --saved-bg: #2c2010;
+      --saved-border: #78350f;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 24px 32px 48px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+  }
+  .page-header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .page-header .meta { color: var(--secondary); font-size: 13px; margin-top: 5px; }
+
+  .empty {
+    color: var(--secondary);
+    font-size: 15px;
+    padding: 40px 0;
+    text-align: center;
+  }
+
+  .paper {
+    border: 1px solid var(--saved-border);
+    background: var(--saved-bg);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    transition: opacity 0.2s;
+  }
+  .paper.removed { opacity: 0; pointer-events: none; }
+
+  .paper-title { font-weight: 600; font-size: 15px; margin-bottom: 3px; }
+  .paper-meta  { font-size: 12px; color: var(--secondary); margin-bottom: 8px; }
+  .paper-summary { font-size: 13.5px; line-height: 1.6; margin-bottom: 10px; }
+
+  .paper-notes {
+    width: 100%;
+    font-size: 12px;
+    font-family: inherit;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    resize: vertical;
+    margin-bottom: 10px;
+  }
+
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    width: 540px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  .modal h3 { font-size: 14px; margin-bottom: 10px; }
+  .modal textarea {
+    width: 100%; height: 160px;
+    font-family: "SF Mono", "Fira Mono", monospace;
+    font-size: 12px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface, #f5f5f7);
+    color: var(--text);
+    resize: none;
+  }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+
+  .paper-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .paper-link { font-size: 12px; color: var(--accent); text-decoration: none; }
+  .paper-link:hover { text-decoration: underline; }
+
+  .btn {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--button-bg);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--button-hover); }
+  .btn.danger { color: #dc2626; border-color: #dc2626; }
+  .btn.danger:hover { background: #fee2e2; }
+
+  .saved-on { font-size: 11px; color: var(--secondary); margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>🔖 Saved Papers</h1>
+  <div class="meta">{{ papers | length }} saved paper{{ 's' if papers | length != 1 }}</div>
+</div>
+
+{% if not papers %}
+<div class="empty">No saved papers yet. Hit Save on any paper in a digest.</div>
+{% endif %}
+
+{% for paper in papers %}
+<div class="paper" id="paper-{{ paper.id | replace('.', '-') }}">
+  <div class="paper-title">{{ paper.title }}</div>
+  <div class="paper-meta">
+    {{ paper.authors[:3] | join(', ') }}{% if paper.authors | length > 3 %} et al.{% endif %}
+    &middot; {{ paper.date_display }}
+  </div>
+  <div class="paper-summary">{{ paper.summary or paper.abstract[:300] }}</div>
+  <textarea class="paper-notes"
+            id="notes-{{ paper.id | replace('.', '-') }}"
+            placeholder="Notes…"
+            rows="2">{{ paper.notes or '' }}</textarea>
+  <div class="paper-actions">
+    <a class="paper-link" href="{{ paper.pdf_url }}" target="_blank">→ arxiv.org/abs/{{ paper.id }}</a>
+    <button class="btn cite-btn"
+            data-id="{{ paper.id }}"
+            data-title="{{ paper.title }}"
+            data-authors="{{ paper.authors | join(' || ') }}"
+            data-year="{{ paper.published_at[:4] }}"
+            onclick="copyCitation(this)">Copy BibTeX</button>
+    <button class="btn" onclick="saveNotes('{{ paper.id }}')">Save Notes</button>
+    <span class="saved-on">saved {{ paper.saved_display }}</span>
+    <button class="btn danger" onclick="unsavePaper('{{ paper.id }}')">Remove</button>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+  function unsavePaper(paperId) {
+    const card = document.getElementById('paper-' + paperId.replace(/\./g, '-'));
+    if (card) card.classList.add('removed');
+    fetch('http://127.0.0.1:{{ action_port }}/unsave/' + encodeURIComponent(paperId))
+      .then(function() { location.reload(); })
+      .catch(function() { location.reload(); });
+  }
+
+  function saveNotes(paperId) {
+    const ta = document.getElementById('notes-' + paperId.replace(/\./g, '-'));
+    const notes = ta ? ta.value : '';
+    fetch('http://127.0.0.1:{{ action_port }}/notes/' + encodeURIComponent(paperId) + '/' + encodeURIComponent(notes))
+      .then(function() {
+        const btn = event.target;
+        btn.textContent = 'Saved';
+        setTimeout(function() { btn.textContent = 'Save Notes'; }, 1500);
+      })
+      .catch(() => {});
+  }
+
+  function copyCitation(btn) {
+    const paperId = btn.dataset.id;
+    const title   = btn.dataset.title;
+    const year    = btn.dataset.year;
+    const rawAuthors = (btn.dataset.authors || '').split(' || ').filter(Boolean);
+    const authors = rawAuthors.map(function(a) {
+      const parts = a.trim().split(' ');
+      const last  = parts[parts.length - 1];
+      const first = parts.slice(0, -1).join(' ');
+      return last + (first ? ', ' + first : '');
+    }).join(' and ');
+    const key = (rawAuthors[0] ? rawAuthors[0].trim().split(' ').pop().toLowerCase() : 'unknown')
+                + year + paperId.replace(/\./g, '');
+    const bibtex = '@misc{' + key + ',\n'
+      + '  title         = {' + title + '},\n'
+      + '  author        = {' + authors + '},\n'
+      + '  year          = {' + year + '},\n'
+      + '  eprint        = {' + paperId + '},\n'
+      + '  archivePrefix = {arXiv},\n'
+      + '  url           = {https://arxiv.org/abs/' + paperId + '}\n'
+      + '}';
+    document.getElementById('bibtex-text').value = bibtex;
+    document.getElementById('bibtex-modal').classList.add('open');
+    document.getElementById('modal-copy-btn').textContent = 'Copy';
+  }
+
+  function copyFromModal() {
+    const ta = document.getElementById('bibtex-text');
+    ta.select();
+    ta.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    document.getElementById('modal-copy-btn').textContent = 'Copied!';
+  }
+
+  function closeBibtexModal() {
+    document.getElementById('bibtex-modal').classList.remove('open');
+  }
+
+  document.getElementById('bibtex-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeBibtexModal();
+  });
+</script>
+
+<div class="modal-backdrop" id="bibtex-modal">
+  <div class="modal">
+    <h3>BibTeX Citation</h3>
+    <textarea id="bibtex-text" readonly></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeBibtexModal()">Close</button>
+      <button class="btn" id="modal-copy-btn" onclick="copyFromModal()">Copy</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

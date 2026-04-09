@@ -8,7 +8,7 @@ from typing import Optional
 
 import rumps
 
-from app import db, notifier, pipeline, scheduler
+from app import action_server, db, notifier, pipeline, scheduler
 from app.wizard import load_config
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class SiftMenuBarApp(rumps.App):
         self._icon_active = str(ASSETS_DIR / "icon_active.png")
         self._digest_ready = False
 
+        self._action_port = action_server.start()
         self._build_menu()
         self._start_scheduler()
 
@@ -41,10 +42,14 @@ class SiftMenuBarApp(rumps.App):
         )
         self._new_digest_item.hide()
 
+        self._history_item = rumps.MenuItem("📋 Digest History")
+        self._history_item.add(rumps.MenuItem("Loading…"))
+
         self.menu = [
             self._new_digest_item,
             rumps.MenuItem("📖 Open Latest Digest", callback=self._open_latest_digest),
-            rumps.MenuItem("📋 Digest History", callback=self._show_history),
+            self._history_item,
+            rumps.MenuItem("🔖 Saved Papers", callback=self._open_saved_papers),
             None,  # separator
             rumps.MenuItem("🔄 Fetch Now", callback=self._fetch_now),
             rumps.MenuItem("⚙️  Preferences", callback=self._open_preferences),
@@ -62,7 +67,7 @@ class SiftMenuBarApp(rumps.App):
             logger.info("Pipeline already running, skipping scheduled trigger.")
             return
         pipeline.run_pipeline(
-            config=self.config,
+            config={**self.config, "action_port": self._action_port},
             on_complete=self._on_pipeline_complete,
             on_error=self._on_pipeline_error,
         )
@@ -108,22 +113,32 @@ class SiftMenuBarApp(rumps.App):
         else:
             rumps.alert("Sift", "Digest file not found.")
 
+    @rumps.clicked("🔖 Saved Papers")
+    def _open_saved_papers(self, _=None):
+        self._open_html(f"http://127.0.0.1:{self._action_port}/saved")
+
     @rumps.clicked("📋 Digest History")
-    def _show_history(self, _=None):
+    def _build_history_menu(self, _=None):
         digests = db.get_all_digests()
+        self._history_item.clear()
+
         if not digests:
-            rumps.alert("Sift", "No digest history yet.")
+            self._history_item.add(rumps.MenuItem("No digests yet"))
             return
 
-        history_menu = rumps.Window(
-            title="Digest History",
-            message="\n".join(
-                f"• {d['generated_at'][:16]}  —  {d['paper_count']} papers"
-                for d in digests[:15]
-            ),
-            ok="Close",
-        )
-        history_menu.run()
+        for d in digests[:20]:
+            label = f"{d['generated_at'][:16].replace('T', '  ')}  —  {d['paper_count']} papers"
+            html_path = d.get("html_path", "")
+
+            def make_callback(path):
+                def callback(_):
+                    if path and Path(path).exists():
+                        self._open_html(path)
+                    else:
+                        rumps.alert("Sift", "Digest file no longer exists.")
+                return callback
+
+            self._history_item.add(rumps.MenuItem(label, callback=make_callback(html_path)))
 
     @rumps.clicked("🔄 Fetch Now")
     def _fetch_now(self, _=None):

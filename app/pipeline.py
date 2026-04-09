@@ -75,6 +75,7 @@ def _run_all_steps(
     sum_model: str = config["summarization_model"]
     emb_model: str = config["embedding_model"]
     retention: int = config.get("digest_retention_days", 30)
+    action_port: int = config.get("action_port", 0)
 
     logger.info("[Pipeline] Step 1 — Fetch")
     t0 = time.monotonic()
@@ -127,14 +128,14 @@ def _run_all_steps(
     t0 = time.monotonic()
     generation_seconds = time.monotonic() - t_start
     html_path = renderer.render_digest(
-        final_papers, topics, "tmp", generation_seconds
+        final_papers, topics, "tmp", generation_seconds, action_port
     )
 
     digest_id = db.create_digest(html_path, len(final_papers))
 
     from pathlib import Path as _Path
     final_html_path = renderer.render_digest(
-        final_papers, topics, digest_id, generation_seconds
+        final_papers, topics, digest_id, generation_seconds, action_port
     )
     with db.get_connection() as conn:
         conn.execute(

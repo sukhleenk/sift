@@ -32,6 +32,7 @@ def render_digest(
     topics: list[str],
     digest_id: str,
     generation_seconds: float,
+    action_port: int = 0,
 ) -> str:
     env = Environment(
         loader=FileSystemLoader(str(_templates_dir())),
@@ -56,6 +57,7 @@ def render_digest(
         "topics": topics,
         "clusters": clusters,
         "generation_time": gen_time,
+        "action_port": action_port,
     }
 
     html = template.render(**context)
@@ -112,6 +114,37 @@ def _format_duration(seconds: float) -> str:
     m = int(seconds // 60)
     s = int(seconds % 60)
     return f"{m}m {s:02d}s"
+
+
+def render_saved_papers(papers: list[dict], action_port: int = 0, as_string: bool = False) -> str:
+    env = Environment(
+        loader=FileSystemLoader(str(_templates_dir())),
+        autoescape=select_autoescape(["html"]),
+    )
+    env.filters["tojson"] = _paper_tojson
+
+    template = env.get_template("saved.html.j2")
+
+    for paper in papers:
+        try:
+            dt = datetime.fromisoformat(paper.get("published_at", ""))
+            paper["date_display"] = dt.strftime("%b %-d %Y")
+        except Exception:
+            paper["date_display"] = paper.get("published_at", "")[:10]
+        try:
+            dt = datetime.fromisoformat(paper.get("saved_at", ""))
+            paper["saved_display"] = dt.strftime("%b %-d %Y")
+        except Exception:
+            paper["saved_display"] = paper.get("saved_at", "")[:10]
+
+    html = template.render(papers=papers, action_port=action_port)
+
+    if as_string:
+        return html
+
+    out = _output_dir() / "saved.html"
+    out.write_text(html, encoding="utf-8")
+    return str(out)
 
 
 def _paper_tojson(paper: dict) -> str:

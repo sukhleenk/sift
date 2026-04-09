@@ -38,7 +38,8 @@ huggingface/
 .Spotlight-V100
 .Trashes
 
-# PyInstaller
+# PyInstaller — build artifacts and packaging config (keep locally, not for repo)
+*.spec
 *.spec.bak
 dist/
 build/
