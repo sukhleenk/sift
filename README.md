@@ -117,41 +117,6 @@ You can override any of these in the wizard or in Preferences at any time.
 
 ---
 
-## Project layout
-
-```
-sift/
-├── main.py
-├── app/
-│   ├── db.py            # SQLite storage
-│   ├── hardware.py      # hardware detection and model selection
-│   ├── wizard.py        # first-run setup wizard
-│   ├── fetcher.py       # ArXiv API client
-│   ├── embedder.py      # sentence-transformers wrapper
-│   ├── clusterer.py     # k-means clustering and TF-IDF labeling
-│   ├── summarizer.py    # HuggingFace summarization
-│   ├── renderer.py      # Jinja2 HTML digest rendering
-│   ├── pipeline.py      # fetch/embed/cluster/summarize/render orchestration
-│   ├── scheduler.py     # APScheduler digest scheduling
-│   ├── menubar.py       # macOS menu bar (rumps)
-│   ├── tray_linux.py    # Linux system tray (pystray)
-│   ├── preferences.py   # preferences window
-│   └── notifier.py      # system notifications
-├── templates/
-│   └── digest.html.j2   # digest HTML template
-├── assets/
-│   ├── icon.png
-│   └── icon_active.png
-├── requirements.txt
-├── sift.spec
-├── build_mac.sh
-├── build_linux.sh
-├── com.sift.app.plist
-└── sift.desktop
-```
-
----
-
 ## Contributing
 
 Contributions are welcome. Some things that would be genuinely useful:
