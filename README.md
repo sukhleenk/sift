@@ -35,6 +35,8 @@ pip install -r requirements.txt
 python main.py
 ```
 
+> **Note:** Running Sift as a Python script (above) is currently more stable and recommended over using the released packaged builds.
+
 The first time you run it, a setup wizard opens. It detects your hardware and suggests a model, but you can override it. It asks for your topics, how often you want digests, and how many papers per digest. When you click "Download Models & Start", it pulls the model weights from HuggingFace and launches the app.
 
 After setup, Sift sits in your menu bar. Click "Fetch Now" to run a digest immediately.
@@ -53,51 +55,13 @@ Open Preferences, change the model dropdown, and save. Sift downloads the new mo
 
 ---
 
-## Login auto-start
+## ArXiv API limits and rate limiting
 
-### macOS
+Sift fetches papers using the [ArXiv API](https://arxiv.org/help/api/index). ArXiv enforces rate limits on automated requests.
 
-```bash
-cp com.sift.app.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.sift.app.plist
-```
-
-To stop it from launching at login:
-```bash
-launchctl unload ~/Library/LaunchAgents/com.sift.app.plist
-```
-
-### Linux
-
-```bash
-mkdir -p ~/.config/autostart
-cp sift.desktop ~/.config/autostart/
-```
-
-Edit the `Exec=` line in the file to point to your Python interpreter and `main.py`.
-
----
-
-## Building for distribution
-
-### macOS DMG
-
-```bash
-pip install pyinstaller
-brew install create-dmg
-bash build_mac.sh
-```
-
-Output: `dist/Sift.dmg`. The script also prints optional notarization steps at the end.
-
-### Linux AppImage
-
-```bash
-pip install pyinstaller
-# install appimagetool from https://github.com/AppImage/AppImageKit/releases
-bash build_linux.sh
-chmod +x dist/Sift-x86_64.AppImage
-```
+- **Between topics:** Sift waits at least 5 seconds between requests for different topics, in line with ArXiv's terms of service.
+- **HTTP 429 (rate limited):** If ArXiv rate limits your IP, Sift will wait 2 minutes and retry, then 5 minutes and retry again. If it is still blocked after that, the fetch for that topic is skipped and an error is logged.
+- **Persistent blocks:** ArXiv occasionally blocks IPs for extended periods (hours or more). If you see repeated 429 errors across multiple runs, wait a while before trying again — there is nothing Sift can do to clear an IP-level block. Running too many fetches in a short window is the most common cause.
 
 ---
 
